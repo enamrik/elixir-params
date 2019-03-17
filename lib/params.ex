@@ -22,6 +22,15 @@ defmodule ElixirParams.Params do
     %__MODULE__{ params: params_list ++ [%Parameter{name: name, value: value, alias: alias, default: default}] }
   end
 
+  @spec from(map | keyword) :: __MODULE__.t
+  def from(args) do
+    cond do
+      is_map(args) or Keyword.keyword?(args) -> Enum.reduce(args,
+                                                            params(),
+                                                            fn {key, value}, params -> params |> put(key, value) end)
+    end
+  end
+
   @spec param(atom(), any(), [{:alias, atom | String.t}, {:default, any}]) :: ElixirParams.Parameter.t()
   def param(name, value, options \\ []) do
     alias   = Keyword.get(options, :alias, name)
@@ -36,7 +45,7 @@ defmodule ElixirParams.Params do
 
   @spec get(__MODULE__.t(), atom()) :: any()
   def get(%__MODULE__{params: params_list}, name) when is_atom(name) do
-    [first | _] = params_list |> Enum.filter(fn %Parameter{name: name} -> name == name end)
+    [first | _] = params_list |> Enum.filter(fn %Parameter{name: param_name} -> param_name == name end)
     if is_nil(first), do: nil, else: first.value
   end
 

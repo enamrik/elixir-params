@@ -6,6 +6,18 @@ defmodule ElixirParams.ParamsTest do
   use ExUnit.Case
 
   describe "Params" do
+    test "can create params from a keyword list" do
+      params = Params.from(show_ids: ["showId1", "showId2"], video_id: "videoId1")
+      assert params |> Params.get(:video_id) == "videoId1"
+      assert params |> Params.get(:show_ids) == ["showId1", "showId2"]
+    end
+
+    test "can create params from a map" do
+      params = Params.from(%{:show_ids => ["showId1", "showId2"], :video_id => "videoId1"})
+      assert params |> Params.get(:video_id) == "videoId1"
+      assert params |> Params.get(:show_ids) == ["showId1", "showId2"]
+    end
+
     test "can return default values for parameters" do
       params = Params.params()
                |> Params.put(:show_ids, ["showId1", "showId2"])
