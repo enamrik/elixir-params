@@ -6,19 +6,23 @@ defmodule ElixirParams.Params do
   @enforce_keys [:params]
   defstruct [:params]
 
+  @spec params() :: __MODULE__.t()
   def params do
     %__MODULE__{params: []}
   end
 
+  @spec put(__MODULE__.t(), __MODULE__.t()) :: __MODULE__.t()
   def put(%__MODULE__{params: params_list}, %Parameter{} = parameter) do
     %__MODULE__{ params: params_list ++ [parameter] }
   end
+  @spec put(__MODULE__.t(), atom(), any(), [{:alias, atom | String.t}, {:default, any}]) :: __MODULE__.t()
   def put(%__MODULE__{params: params_list}, name, value, options \\ []) when is_atom(name) do
     alias   = Keyword.get(options, :alias, name)
     default = Keyword.get(options, :default)
     %__MODULE__{ params: params_list ++ [%Parameter{name: name, value: value, alias: alias, default: default}] }
   end
 
+  @spec param(atom(), any(), [{:alias, atom | String.t}, {:default, any}]) :: ElixirParams.Parameter.t()
   def param(name, value, options \\ []) do
     alias   = Keyword.get(options, :alias, name)
     default = Keyword.get(options, :default)
@@ -30,12 +34,21 @@ defmodule ElixirParams.Params do
       }
   end
 
+  @spec get(__MODULE__.t(), atom()) :: any()
   def get(%__MODULE__{params: params_list}, name) when is_atom(name) do
     [first | _] = params_list |> Enum.filter(fn %Parameter{name: name} -> name == name end)
     if is_nil(first), do: nil, else: first.value
   end
 
-  def validate(%__MODULE_{} = a_params, options) do
+  @doc """
+    E.g.
+        Params.validate(params, [
+          param_name_1: [validators: [Validators.list()], alias: "paramName1"],
+          param_name_2: [validators: [Validators.string()]]
+        ])
+  """
+  @spec validate(__MODULE__.t(), keyword()) :: {:error, ElixirParams.ValidationErrors.t()} | {:ok, any()}
+  def validate(%__MODULE__{} = a_params, options) do
     [values: values, errors: errors] = execute_validation(a_params, options)
     defaults_on_all_nil = Keyword.get(options, :defaults_on_all_nil)
 
@@ -47,7 +60,8 @@ defmodule ElixirParams.Params do
     end
   end
 
-  defp execute_validation(%__MODULE_{params: params}, options) do
+  @spec execute_validation(__MODULE__.t, keyword) :: [values: map, errors: map]
+  defp execute_validation(%__MODULE__{params: params}, options) do
     params
     |> Enum.reduce(
          [values: %{}, errors: %{}],
@@ -73,6 +87,7 @@ defmodule ElixirParams.Params do
          end)
   end
 
+  @spec extract_errors([:ok | {:ok, any} | {:error, any}]) :: [{:error, any}]
   defp extract_errors(statuses) do
     statuses |> Enum.reduce([], fn
       {:ok, _}       , aggr_errors -> aggr_errors
