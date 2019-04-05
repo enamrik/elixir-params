@@ -3,6 +3,7 @@ defmodule ElixirParams.ParamsTest do
   alias ElixirParams.Validators
   alias ElixirParams.Validator
   alias ElixirParams.ValidationErrors
+  alias ElixirParams.Parsers
   use ExUnit.Case
 
   describe "Params" do
@@ -149,6 +150,14 @@ defmodule ElixirParams.ParamsTest do
     test "#get: can get params" do
       params = Params.params() |> Params.put(:video_id, "three")
       assert Params.get(params, :video_id) == "three"
+    end
+
+    test "can run a parser before executing validators" do
+      {:ok,  %{video_id: video_id}} = Params.params()
+               |> Params.put(:video_id, "3")
+               |> Params.validate(video_id: [parser: &Parsers.parse_integer/1, validators: [Validators.number()]])
+
+      assert video_id == 3
     end
   end
 end

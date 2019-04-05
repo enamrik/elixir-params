@@ -79,20 +79,25 @@ defmodule ElixirParams.Params do
 
            field_info = Keyword.get(options, name, [])
            validators = Keyword.get(field_info, :validators, [])
+           parser     = Keyword.get(field_info, :parser, &({:ok, &1}))
            alias      = Keyword.get(field_info, :alias, param_alias || name)
 
-           errors = validators
-                    |> Enum.map(fn %Validator{validator_func: validator} -> validator.(alias, value) end)
-                    |>  extract_errors
+          {errors, parsed_value} =
+            case parser.(value) do
+              {:ok, parsed_value} -> errors = validators
+                                              |> Enum.map(fn %Validator{validator_func: validator} ->
+                                                validator.(alias, parsed_value)
+                                              end)
+                                              |>  extract_errors
+                                     {errors, parsed_value}
+              {:error,     error} -> {[error],         nil}
+            end
 
            cond do
-             length(errors) == 0       -> [ values: values |> Map.put(name, value),
-                                            errors: validation_errors]
-             not is_nil(param_default) -> [ values: values |> Map.put(name, param_default),
-                                            errors: validation_errors]
-             length(errors) > 0        -> [ values: values |> Map.put(name, value),
-                                            errors: validation_errors |> Map.put(alias, errors)]
-           end
+            length(errors) == 0       -> [ values: values |> Map.put(name, parsed_value),  errors: validation_errors]
+            not is_nil(param_default) -> [ values: values |> Map.put(name, param_default), errors: validation_errors]
+            length(errors) > 0        -> [ values: values |> Map.put(name, parsed_value),  errors: validation_errors |> Map.put(alias, errors)]
+          end
          end)
   end
 
